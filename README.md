@@ -1,85 +1,82 @@
-# 📄 theHelper – AI Research Assistant
+# theHelper – AI Research Assistant
 
-> Upload a PDF, get a clean summary, and ask questions based on its content — fast and intelligently.
-
----
-
-## 🚀 Features
-
-- 📚 **Extract Text from PDF**  
-  Reads and cleans PDF text using `PyPDF2` and regular expressions to remove unwanted characters.
-
-- ✂️ **Smart Text Chunking**  
-  Breaks large documents into manageable overlapping chunks for better analysis using `langchain_text_splitters`.
-
-- 🧠 **Keyword Extraction**  
-  Identifies the most important keywords from the PDF text to focus on the most relevant sections.
-
-- 🧩 **Semantic Search with FAISS**  
-  Embeds text using `SentenceTransformer (BERT)` and builds a FAISS vector store for fast, semantic similarity search.
-
-- ✨ **Summarization**  
-  Summarizes entire documents or context passages using `facebook/bart-large-cnn` through Hugging Face’s `transformers` pipeline.
-
-- ❓ **Question Answering**  
-  Given a PDF and a question, the system retrieves relevant document chunks and generates a high-quality, context-aware answer.
+> Upload a PDF, get a summary, and ask questions — fast and accurately.
 
 ---
 
-## 🛠 Tech Stack
+## Overview
 
-- **Python 3**
-- **PyPDF2** – PDF parsing
-- **Hugging Face Transformers** – Summarization model (`BART`)
-- **Sentence Transformers** – Embedding with `bert-base-nli-mean-tokens`
-- **FAISS** – Fast Approximate Nearest Neighbor search
-- **LangChain** – Text splitting and document management
-- **Regex, Collections** – Preprocessing and keyword extraction
+**theHelper** is a hybrid RAG system for PDF analysis:
+- **Local transformers** for fast summarization (no API calls)
+- **OpenAI** for intelligent question answering
 
 ---
 
-## 📦 Installation
+## Architecture
+
+| Component | Technology | API Cost |
+|-----------|------------|----------|
+| Embeddings | `all-MiniLM-L6-v2` | Free |
+| Summarization | `facebook/bart-large-cnn` | Free |
+| Q&A | OpenAI `gpt-4o-mini` | Per query |
+
+---
+
+## Setup
 
 ```bash
+# Clone and install
+git clone https://github.com/yourusername/theHelper.git
+cd theHelper
 pip install -r requirements.txt
-```
 
-(make sure you have `python3-pip`, and it’s recommended to use a virtual environment)
+# Add API key to .env
+echo "OPENAI_API_KEY=sk-your-key" > .env
+
+# Run
+streamlit run AIResearchAssistant.py
+```
 
 ---
 
-## 🧑‍💻 Usage
+## Usage
 
-**Basic Workflow:**
+### Web Interface
+1. Run `streamlit run AIResearchAssistant.py`
+2. Go to "Try it out" → upload PDF
+3. View summary (instant, local) → ask questions (uses API)
 
+### Python
 ```python
 from assistant import Assistant
 
 helper = Assistant()
-
-# Summarize the whole PDF
-summary = helper.get_summary('path_to_pdf.pdf')
-print(summary)
-
-# Ask a question based on the PDF content
-answer = helper.ask_llm("What are the key points discussed?", 'path_to_pdf.pdf')
-print(answer)
+summary = helper.get_summary('doc.pdf')  # Local BART
+answer = helper.ask("What is the main finding?")  # OpenAI
 ```
 
 ---
 
-## 📌 Notes
+## Project Structure
 
-- The QA pipeline currently uses the **summarization model** for simplicity. (Originally prepared for a QA model like `bert-base-cased-squad2`.)
-- Works best on documents with **clear structure and readable text**.
-- If you get weird results, ensure your PDF is text-based (not image scans without OCR).
+```
+theHelper/
+├── assistant.py          # Core RAG (hybrid)
+├── AIResearchAssistant.py
+├── pages/Try it out.py
+├── requirements.txt
+├── .env                  # API key
+└── .gitignore
+```
+
+---
+
+## License
+
+MIT
 
 ---
 
-## 🧠 Future Improvements
+## Contact
 
-- Switch back to a dedicated QA model for more precise question answering.
-- Improve context refinement using dynamic keyword weighting.
-- Add support for OCR if the PDF is scanned images.
-
----
+kunjcr2@gmail.com

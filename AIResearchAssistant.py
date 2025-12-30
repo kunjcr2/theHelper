@@ -1,27 +1,53 @@
 import streamlit as st
+from dotenv import load_dotenv
+from assistant import check_api_key
 
-st.set_page_config(page_title="AIResearchAssistant")
+load_dotenv()
 
-st.title("Welcome to theHelper")
+st.set_page_config(
+    page_title="theHelper - AI Research Assistant",
+    page_icon="📄",
+    layout="centered"
+)
 
-st.write("""
-### How to Use the AI Research Assistant
+st.title("theHelper")
+st.subheader("AI-Powered Research Assistant")
 
-This application is designed to assist you in analyzing and summarizing PDF documents, as well as answering questions based on the content of the uploaded PDF. Follow the steps below to use the application effectively:
+# API Key Status
+if check_api_key():
+    st.success("OpenAI API configured", icon="✓")
+else:
+    st.error("Please add your OpenAI API key to `.env`", icon="⚠")
 
-1. **Upload a PDF File**: Use the file uploader below to upload a PDF document. The application currently supports only PDF files.
-2. **View Summary**: Once the file is uploaded, the application will automatically generate a summary of the document and display it below.
-3. **Ask Questions**: Use the chat input box at the bottom of the page to ask questions related to the content of the uploaded PDF. The application will provide an answer based on the context of the document.
-4. **View Context**: For each question, the application will also display the relevant context from the document that was used to generate the answer.
+st.markdown("""
+---
 
-### Features
-- **Document Summarization**: Automatically generates a concise summary of the uploaded PDF.
-- **Question Answering**: Answers questions based on the content of the PDF.
-- **Context Extraction**: Provides the relevant context from the document for each answer.
+### How It Works
 
-### Tips
-- Ensure that the uploaded PDF contains readable text (not scanned images) for accurate summarization and question answering.
-- Ask specific questions to get the most relevant answers.
+**theHelper** uses a hybrid approach for fast, cost-effective PDF analysis:
 
-For any questions or support, please contact us at kunjcr2@gmail.com.
+| Feature | Technology | Speed |
+|---------|------------|-------|
+| Embeddings | SentenceTransformers | Instant |
+| Summarization | BART (local) | ~3-5s |
+| Q&A | OpenAI GPT-4o-mini | ~2-3s |
+
+---
+
+### Quick Start
+
+1. Add your OpenAI API key to `.env`
+2. Go to **"Try it out"** in the sidebar
+3. Upload a PDF → get summary → ask questions
+
+---
+
+### Cost
+
+- **Summarization**: Free (runs locally)
+- **Q&A**: ~$0.001 per question (OpenAI API)
+
+---
+
+*Contact: kunjcr2@gmail.com*
 """)

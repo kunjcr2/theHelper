@@ -1,0 +1,15 @@
+# Core
+openai>=1.0.0
+PyPDF2>=3.0.0
+numpy>=1.24.0
+faiss-cpu>=1.7.4
+langchain-text-splitters>=0.0.1
+python-dotenv>=1.0.0
+
+# ML Models (local)
+transformers>=4.30.0
+sentence-transformers>=2.2.0
+torch>=2.0.0
+
+# Web Interface
+streamlit>=1.28.0
