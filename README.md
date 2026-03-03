@@ -1,6 +1,8 @@
 # theHelper — Production RAG API
 
-> Local-first PDF Q&A over a REST API: FAISS index, JSONL observability, cross-encoder reranking, eval suite, and CI.
+> Local-first PDF Q&A over a REST API: FAISS index, cross-encoder reranking, JSONL observability, eval suite, and CI.
+
+- About architecture: [ARCHITECTURE.md](ARCHITECTURE.md)
 
 ---
 
@@ -10,9 +12,9 @@
 |-----------|------------|---------------|
 | PDF parsing | `pypdf` | Local |
 | Embeddings | `all-MiniLM-L6-v2` | Local |
+| Chunking | `RecursiveCharacterTextSplitter` | Local |
 | Vector index | FAISS (persisted to disk) | Local — `data/faiss.index` |
-| Chunking | Recursive / Semantic | Local |
-| Reranking | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Local (optional) |
+| Reranking | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Local (on by default) |
 | Observability | JSONL traces + request artifacts | Local — `data/` |
 | Generation | OpenAI `gpt-4o-mini` | API |
 
@@ -29,12 +31,12 @@ echo "OPENAI_API_KEY=sk-your-key" > .env
 
 ---
 
-## Running the API
+## Running
 
 ```bash
 uvicorn api:app --reload
 # → http://localhost:8000
-# → http://localhost:8000/docs   (Swagger UI)
+# → http://localhost:8000/docs  (Swagger UI)
 ```
 
 ---
@@ -43,15 +45,17 @@ uvicorn api:app --reload
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/health` | Index status, vector count |
-| `POST` | `/ingest` | Upload a PDF (`multipart/form-data`) |
+| `GET` | `/health` | Index status + vector count |
+| `POST` | `/ingest` | Upload a PDF and index it |
 | `POST` | `/query` | Ask a question, get answer + citations |
 
 ### Ingest
 
 ```bash
-curl -X POST http://localhost:8000/ingest \
-  -F "file=@report.pdf"
+curl -X POST http://localhost:8000/ingest -F "file=@report.pdf"
+
+# Force re-index even if file hasn't changed
+curl -X POST "http://localhost:8000/ingest?force=true" -F "file=@report.pdf"
 ```
 
 ### Query
@@ -59,12 +63,12 @@ curl -X POST http://localhost:8000/ingest \
 ```bash
 curl -X POST http://localhost:8000/query \
   -H "Content-Type: application/json" \
-  -d '{"question": "What are the key findings?", "k": 5, "use_mmr": true}'
+  -d '{"question": "What are the key findings?", "k": 5}'
 ```
 
 **Request body:**
 ```json
-{ "question": "...", "k": 5, "use_mmr": false, "use_rerank": false }
+{ "question": "...", "k": 5, "use_rerank": true }
 ```
 
 **Response:**
@@ -80,17 +84,9 @@ curl -X POST http://localhost:8000/query \
 
 ---
 
-## CLI
-
-```bash
-python -m rag.cli ingest path/to/doc.pdf
-python -m rag.cli query "What are the main findings?" --k 8 --mmr
-python -m rag.cli eval eval/datasets/sample.json
-```
-
----
-
 ## Observability
+
+Every query is automatically traced locally — no external services.
 
 | Artifact | Path |
 |----------|------|
@@ -99,6 +95,18 @@ python -m rag.cli eval eval/datasets/sample.json
 | Query traces | `data/traces/<YYYY-MM-DD>.jsonl` |
 | Request artifacts | `data/artifacts/<request_id>/` |
 | Eval reports | `eval/reports/<run_id>.json` |
+
+Each trace record contains: timestamp, session_id, request_id, query, retrieval config, retrieved chunk refs + scores, latency timings, model used, answer length, errors.
+
+---
+
+## Eval
+
+```bash
+python -m eval.run eval/datasets/sample.json
+```
+
+Reports saved to `eval/reports/` as both JSON and Markdown.
 
 ---
 
@@ -114,23 +122,22 @@ pytest tests/ -v
 
 ```
 theHelper/
-├── api.py             ← FastAPI app (entry point)
+├── api.py              ← FastAPI entry point
 ├── rag/
-│   ├── config.py
-│   ├── ingest.py
-│   ├── chunking.py
-│   ├── index.py
-│   ├── retrieval.py
-│   ├── rerank.py
-│   ├── tracing.py
-│   ├── pipeline.py
-│   └── cli.py
+│   ├── config.py       ← all config knobs
+│   ├── ingest.py       ← PDF → per-page text + metadata
+│   ├── chunking.py     ← recursive & semantic chunking
+│   ├── index.py        ← FAISS + metadata store
+│   ├── retrieval.py    ← cosine similarity search
+│   ├── rerank.py       ← cross-encoder reranker
+│   ├── tracing.py      ← JSONL traces + artifact files
+│   └── pipeline.py     ← orchestrates everything
 ├── eval/
 │   ├── metrics.py
 │   ├── run.py
 │   └── datasets/sample.json
 ├── tests/
-├── data/              (gitignored)
+├── data/               ← gitignored (index, traces, artifacts)
 └── .github/workflows/ci.yml
 ```
 
