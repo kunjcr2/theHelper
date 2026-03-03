@@ -1,58 +1,111 @@
-# theHelper – AI Research Assistant
+# theHelper — Production RAG API
 
-> Upload a PDF, get a summary, and ask questions — fast and accurately.
-
----
-
-## Overview
-
-**theHelper** is a hybrid RAG system for PDF analysis:
-- **Local transformers** for fast summarization (no API calls)
-- **OpenAI** for intelligent question answering
+> Local-first PDF Q&A over a REST API: FAISS index, JSONL observability, cross-encoder reranking, eval suite, and CI.
 
 ---
 
 ## Architecture
 
-| Component | Technology | API Cost |
-|-----------|------------|----------|
-| Embeddings | `all-MiniLM-L6-v2` | Free |
-| Summarization | `facebook/bart-large-cnn` | Free |
-| Q&A | OpenAI `gpt-4o-mini` | Per query |
+| Component | Technology | Where it runs |
+|-----------|------------|---------------|
+| PDF parsing | `pypdf` | Local |
+| Embeddings | `all-MiniLM-L6-v2` | Local |
+| Vector index | FAISS (persisted to disk) | Local — `data/faiss.index` |
+| Chunking | Recursive / Semantic | Local |
+| Reranking | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Local (optional) |
+| Observability | JSONL traces + request artifacts | Local — `data/` |
+| Generation | OpenAI `gpt-4o-mini` | API |
 
 ---
 
 ## Setup
 
 ```bash
-# Clone and install
-git clone https://github.com/yourusername/theHelper.git
+git clone https://github.com/kunjcr2/theHelper.git
 cd theHelper
 pip install -r requirements.txt
-
-# Add API key to .env
 echo "OPENAI_API_KEY=sk-your-key" > .env
-
-# Run
-streamlit run AIResearchAssistant.py
 ```
 
 ---
 
-## Usage
+## Running the API
 
-### Web Interface
-1. Run `streamlit run AIResearchAssistant.py`
-2. Go to "Try it out" → upload PDF
-3. View summary (instant, local) → ask questions (uses API)
+```bash
+uvicorn api:app --reload
+# → http://localhost:8000
+# → http://localhost:8000/docs   (Swagger UI)
+```
 
-### Python
-```python
-from assistant import Assistant
+---
 
-helper = Assistant()
-summary = helper.get_summary('doc.pdf')  # Local BART
-answer = helper.ask("What is the main finding?")  # OpenAI
+## Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/health` | Index status, vector count |
+| `POST` | `/ingest` | Upload a PDF (`multipart/form-data`) |
+| `POST` | `/query` | Ask a question, get answer + citations |
+
+### Ingest
+
+```bash
+curl -X POST http://localhost:8000/ingest \
+  -F "file=@report.pdf"
+```
+
+### Query
+
+```bash
+curl -X POST http://localhost:8000/query \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What are the key findings?", "k": 5, "use_mmr": true}'
+```
+
+**Request body:**
+```json
+{ "question": "...", "k": 5, "use_mmr": false, "use_rerank": false }
+```
+
+**Response:**
+```json
+{
+  "request_id": "uuid",
+  "answer": "The main finding is ... [report.pdf p.3]",
+  "sources": [
+    { "filename": "report.pdf", "pages": "3", "score": 0.91, "chunk_id": "...", "doc_id": "..." }
+  ]
+}
+```
+
+---
+
+## CLI
+
+```bash
+python -m rag.cli ingest path/to/doc.pdf
+python -m rag.cli query "What are the main findings?" --k 8 --mmr
+python -m rag.cli eval eval/datasets/sample.json
+```
+
+---
+
+## Observability
+
+| Artifact | Path |
+|----------|------|
+| FAISS index | `data/faiss.index` |
+| Chunk metadata | `data/metadata.json` |
+| Query traces | `data/traces/<YYYY-MM-DD>.jsonl` |
+| Request artifacts | `data/artifacts/<request_id>/` |
+| Eval reports | `eval/reports/<run_id>.json` |
+
+---
+
+## Tests
+
+```bash
+pytest tests/ -v
 ```
 
 ---
@@ -61,22 +114,28 @@ answer = helper.ask("What is the main finding?")  # OpenAI
 
 ```
 theHelper/
-├── assistant.py          # Core RAG (hybrid)
-├── AIResearchAssistant.py
-├── pages/Try it out.py
-├── requirements.txt
-├── .env                  # API key
-└── .gitignore
+├── api.py             ← FastAPI app (entry point)
+├── rag/
+│   ├── config.py
+│   ├── ingest.py
+│   ├── chunking.py
+│   ├── index.py
+│   ├── retrieval.py
+│   ├── rerank.py
+│   ├── tracing.py
+│   ├── pipeline.py
+│   └── cli.py
+├── eval/
+│   ├── metrics.py
+│   ├── run.py
+│   └── datasets/sample.json
+├── tests/
+├── data/              (gitignored)
+└── .github/workflows/ci.yml
 ```
 
 ---
 
 ## License
 
-MIT
-
----
-
-## Contact
-
-kunjcr2@gmail.com
+MIT — *kunjcr2@gmail.com*

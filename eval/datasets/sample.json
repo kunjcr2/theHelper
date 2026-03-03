@@ -1,0 +1,32 @@
+[
+  {
+    "question": "What is the main topic or subject of this document?",
+    "doc_id": "__any__",
+    "expected_sources": [],
+    "ground_truth": "The document's primary topic as described in its introduction or abstract."
+  },
+  {
+    "question": "What are the key findings or conclusions presented?",
+    "doc_id": "__any__",
+    "expected_sources": [],
+    "ground_truth": "The main findings, conclusions, or recommendations from the document."
+  },
+  {
+    "question": "Who are the authors or creators of this document?",
+    "doc_id": "__any__",
+    "expected_sources": [],
+    "ground_truth": "Names of authors, institutions, or organizations responsible for the document."
+  },
+  {
+    "question": "What methodology or approach is described?",
+    "doc_id": "__any__",
+    "expected_sources": [],
+    "ground_truth": "The methods, techniques, or approaches used or described in the document."
+  },
+  {
+    "question": "What are the limitations or future work mentioned?",
+    "doc_id": "__any__",
+    "expected_sources": [],
+    "ground_truth": "Any limitations acknowledged or future directions suggested in the document."
+  }
+]
