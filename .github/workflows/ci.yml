@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      # Provide a stub key so pipeline doesn't crash on import.
+      # Eval LLM-judge calls are gracefully skipped when the key is invalid.
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-stub-for-ci' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Lint (ruff)
+        run: ruff check rag/ eval/ tests/
+
+      - name: Unit tests
+        run: pytest tests/ -v --tb=short
+
+      - name: Eval on sample dataset
+        # Eval uses the generic sample dataset — no real PDF needed for schema tests.
+        # Pipeline query will return "no documents indexed" gracefully.
+        # We gate on exit code: 0 = pass, 1 = threshold failure.
+        run: |
+          python -m eval.run eval/datasets/sample.json
+        continue-on-error: false

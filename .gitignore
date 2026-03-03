@@ -47,3 +47,17 @@ Thumbs.db
 
 # Project specific
 *.pdf
+
+# RAG pipeline runtime data
+data/faiss.index
+data/metadata.json
+data/traces/
+data/artifacts/
+
+# Eval reports
+eval/reports/
+
+# Pytest
+.pytest_cache/
+htmlcov/
+.coverage
